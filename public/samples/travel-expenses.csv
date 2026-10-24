@@ -1,0 +1,6 @@
+date,description,amount,payer,participants,category,notes
+2026-09-12,Airport cab,1450.00,Maya,Maya;Arjun;Nisha;Kabir,TRANSPORT,Early morning pickup
+2026-09-12,Beach house deposit,18000.00,Nisha,Maya;Arjun;Nisha;Kabir,TRAVEL,Two nights
+2026-09-13,Breakfast at the market,1880.50,Kabir,Maya;Arjun;Nisha;Kabir,DINING,Fruit and coffee
+2026-09-13,Sunset boat tickets,6400.00,Arjun,Maya;Arjun;Nisha;Kabir,ENTERTAINMENT,Four tickets
+2026-09-14,Return train,9800.00,Maya,Maya;Arjun;Nisha;Kabir,TRANSPORT,Second class AC

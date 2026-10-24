@@ -1,0 +1,8 @@
+date,description,amount,payer,participants,category,notes
+2026-10-01,Good row,1200.00,Maya,Maya;Arjun,DINING,This row should validate
+18/10/2026,Bad date,900.00,Arjun,Maya;Arjun,DINING,Date format is intentionally wrong
+2026-10-02,Bad amount,"1,250.00",Leela,Maya;Leela,GROCERIES,Comma in amount is intentionally wrong
+2026-10-02,Unknown payer,700.00,Ghost,Maya,OTHER,Payer is not a participant
+2026-10-03,,500.00,Maya,Maya,MISSING,Empty description
+2026-10-04,Unknown beneficiary,600.00,Maya,Maya;Nobody,DINING,Beneficiary is not a participant
+2026-10-05,Formula text,100.00,Maya,Maya;Arjun,OTHER,=HYPERLINK("https://example.invalid","click")
