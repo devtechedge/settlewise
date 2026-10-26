@@ -186,8 +186,18 @@ describe("invitations and roles", () => {
 
   it("blocks writes to archived groups", async () => {
     const owner = await makeUser("Archive Owner", "archive-owner");
+    const partner = await makeUser("Archive Partner", "archive-partner");
     const group = await makeGroup(owner, "Archive group");
     const ownerId = await makeMember(group.id, owner, "EDITOR", "Archive Owner");
+    const partnerId = await makeMember(group.id, partner, "EDITOR", "Archive Partner");
+    await createExpense(owner, group.id, {
+      description: "Before archiving",
+      category: "OTHER",
+      occurredOn: daysAgo(2),
+      payerParticipantId: ownerId,
+      amount: "100.00",
+      split: { method: "EQUAL", participantIds: [ownerId, partnerId] },
+    });
     await setGroupArchived(owner, group.id, true);
     await expectAppError(
       () => createExpense(owner, group.id, {
@@ -200,8 +210,19 @@ describe("invitations and roles", () => {
       }),
       "INVALID_STATE",
     );
+    await expectAppError(() => addParticipant(owner, group.id, "Blocked participant"), "INVALID_STATE");
+    await expectAppError(
+      () => recordPayment(owner, group.id, {
+        senderParticipantId: partnerId,
+        recipientParticipantId: ownerId,
+        amount: "50.00",
+        paidOn: daysAgo(1),
+        idempotencyKey: "archived-payment",
+      }),
+      "INVALID_STATE",
+    );
     await setGroupArchived(owner, group.id, false);
-    await createExpense(owner, group.id, {
+    const allowed = await createExpense(owner, group.id, {
       description: "Allowed after restore",
       category: "OTHER",
       occurredOn: daysAgo(1),
@@ -209,6 +230,15 @@ describe("invitations and roles", () => {
       amount: "100.00",
       split: { method: "EQUAL", participantIds: [ownerId] },
     });
+    expect(allowed.expenseId).toBeTruthy();
+    const payment = await recordPayment(owner, group.id, {
+      senderParticipantId: partnerId,
+      recipientParticipantId: ownerId,
+      amount: "50.00",
+      paidOn: daysAgo(1),
+      idempotencyKey: "archived-payment",
+    });
+    expect(payment.status).toBe("RECORDED");
   });
 
   it("deletes a group only on an exact name confirmation and cascades its ledger", async () => {
