@@ -12,13 +12,9 @@ import { hashPassword, verifyPassword } from "./password";
 import { limitDemoLogin, limitLogin, limitSignup } from "./rate-limit";
 import { clearSessionCookie, createSession, getCurrentAuth, revokeSession } from "./session";
 import { safeNextPath } from "./page-auth";
+import { DEMO_EMAIL } from "./constants";
+import type { FormState } from "./form-state";
 
-export type FormState = {
-  error?: string;
-  fieldErrors?: Record<string, string[]>;
-};
-
-export const DEMO_EMAIL = "maya@settlewise.demo";
 
 function flatten(error: { flatten(): { fieldErrors: Record<string, string[]> } }) {
   return error.flatten().fieldErrors;
@@ -93,6 +89,7 @@ export async function loginAction(_prev: FormState, formData: FormData): Promise
     await createSession(user.id, { userAgent: requestHeaders.get("user-agent") });
   } catch (error) {
     if (isAppError(error)) return { error: error.message };
+    console.error("login action failed", error);
     return { error: "Sign in failed. Try again." };
   }
   redirect(safeNextPath(formData.get("next")?.toString()));
