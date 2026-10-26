@@ -7,7 +7,7 @@ statements through a reviewable import, and produces an explainable settlement p
 It is a record-keeping and settlement-planning application. It does not connect to banks, process
 payments, move money, or provide financial advice.
 
-[![Live Demo](https://img.shields.io/badge/Live_Demo-Open_Settlewise-1f4a39?style=for-the-badge)](https://settlewise.vercel.app)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Open_Settlewise-1f4a39?style=for-the-badge)](https://settlewise-psi.vercel.app)
 ![CI](https://github.com/devtechedge/settlewise/actions/workflows/ci.yml/badge.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6)
 ![Next.js](https://img.shields.io/badge/Next.js-16-black)
@@ -16,7 +16,7 @@ payments, move money, or provide financial advice.
 
 ## Live demo
 
-**Open:** <https://settlewise.vercel.app>
+**Open:** <https://settlewise-psi.vercel.app>
 
 **Demo account:** `maya@settlewise.demo`  
 **Demo password:** `settlewise-demo-2026`
@@ -255,7 +255,7 @@ CI uses a PostgreSQL 17 service and runs the same gates on every push and pull r
 
 ## Security and privacy
 
-Read [`SECURITY.md`](SECURITY.md) for the threat model and [`/privacy`](https://settlewise.vercel.app/privacy)
+Read [`SECURITY.md`](SECURITY.md) for the threat model and [`/privacy`](https://settlewise-psi.vercel.app/privacy)
 for retention behavior. In short:
 
 - Passwords use scrypt; sessions use random tokens stored as hashes.
