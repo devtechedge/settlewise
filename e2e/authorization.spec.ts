@@ -1,8 +1,5 @@
 import { test, expect } from "@playwright/test";
 import { clearRateLimits, getSeededGroupPath, logIn, signUp } from "./helpers";
-import { Client } from "pg";
-import "dotenv/config";
-import { writeFile } from "node:fs/promises";
 
 test.beforeEach(async () => {
   await clearRateLimits();
@@ -18,11 +15,6 @@ test("invalid credentials use a generic message", async ({ page }) => {
   await page.fill("#email", "maya@settlewise.demo");
   await page.fill("#password", "wrong-password");
   await page.getByRole("button", { name: "Sign in" }).click();
-  const client = new Client({ connectionString: process.env.TEST_DATABASE_URL });
-  await client.connect();
-  const rows = await client.query("select key,count,window_start from rate_limits");
-  await writeFile("login-rate-debug.txt", JSON.stringify(rows.rows, null, 2));
-  await client.end();
   await expect(page.getByText("Email or password is incorrect.")).toBeVisible();
 });
 
@@ -30,6 +22,7 @@ test("duplicate registration is rejected without creating a second account", asy
   const email = `duplicate.${Date.now()}@example.test`;
   await signUp(page, "First Account", email, "duplicate-test-password");
   await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page.getByRole("link", { name: "Create account" })).toBeVisible();
   await expect(page).toHaveURL(/\/?$/);
   await page.goto("/signup");
   await page.fill("#displayName", "Second Account");
