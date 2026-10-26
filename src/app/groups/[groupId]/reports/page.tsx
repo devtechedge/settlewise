@@ -28,11 +28,11 @@ export default async function ReportsPage({
   if (!membership) notFound();
 
   const defaults = defaultReportRange();
-  const fromValid = query.from && isoDateSchema.safeParse(query.from).success;
-  const toValid = query.to && isoDateSchema.safeParse(query.to).success;
+  const fromValid = query.from ? isoDateSchema.safeParse(query.from).success : true;
+  const toValid = query.to ? isoDateSchema.safeParse(query.to).success : true;
   const range = {
-    from: fromValid ? (query.from as string) : defaults.from,
-    to: toValid ? (query.to as string) : defaults.to,
+    from: fromValid && query.from ? query.from : defaults.from,
+    to: toValid && query.to ? query.to : defaults.to,
   };
   const data = await getReports(groupId, auth.user.id, range);
   if (!data) notFound();
@@ -54,7 +54,7 @@ export default async function ReportsPage({
         }
       />
 
-      {!fromValid || !toValid ? (
+      {(!fromValid || !toValid) ? (
         <div className="alert" role="alert">An invalid date was ignored. Use YYYY-MM-DD, on or before today.</div>
       ) : null}
 
