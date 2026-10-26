@@ -1,4 +1,3 @@
-import "server-only";
 import { desc, eq, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/db/client";
@@ -29,6 +28,7 @@ export async function listPayments(groupId: string, page = 1, pageSize = 25) {
       recipientParticipantId: settlementPayments.recipientParticipantId,
       recipientName: recipient.displayName,
       createdByName: users.displayName,
+      createdById: settlementPayments.createdBy,
     })
     .from(settlementPayments)
     .innerJoin(participants, eq(participants.id, settlementPayments.senderParticipantId))

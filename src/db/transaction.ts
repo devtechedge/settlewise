@@ -1,4 +1,3 @@
-import "server-only";
 import { db, type Transaction } from "./client";
 
 function isRetryable(error: unknown): boolean {

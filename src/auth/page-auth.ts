@@ -1,4 +1,3 @@
-import "server-only";
 import { redirect } from "next/navigation";
 import { getCurrentAuth, type AuthContext } from "./session";
 

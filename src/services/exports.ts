@@ -1,4 +1,3 @@
-import "server-only";
 import { createHash } from "node:crypto";
 import { and, asc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";

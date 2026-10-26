@@ -1,4 +1,3 @@
-import "server-only";
 import { and, eq, gt, isNull, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { budgets, groups, invitations, memberships, participants, users } from "@/db/schema";
@@ -215,7 +214,18 @@ export async function addParticipant(actor: Actor, groupId: string, displayName:
 }
 
 export async function setParticipantStatus(actor: Actor, groupId: string, participantId: string, status: "ACTIVE" | "INACTIVE") {
-  await requireWritableGroup(groupId, actor.id, "EDITOR");
+  const membership = await requireWritableGroup(groupId, actor.id, "EDITOR");
+  if (status === "INACTIVE") {
+    const target = await db
+      .select({ userId: participants.userId })
+      .from(participants)
+      .where(and(eq(participants.id, participantId), eq(participants.groupId, groupId)))
+      .limit(1);
+    if (!target[0]) throw new AppError("NOT_FOUND", "Participant not found.");
+    if (target[0].userId === membership.ownerId) {
+      throw new AppError("CONFLICT", "The owner's participant profile must stay active. Transfer ownership first.");
+    }
+  }
   const rows = await db
     .update(participants)
     .set({ status, updatedAt: new Date() })
@@ -260,13 +270,28 @@ export async function transferOwnership(actor: Actor, groupId: string, targetUse
   const membership = await requireWritableGroup(groupId, actor.id, "OWNER");
   if (targetUserId === actor.id) throw new AppError("VALIDATION_ERROR", "Choose another member.");
   const target = await db
-    .select({ id: memberships.id })
+    .select({ id: memberships.id, displayName: users.displayName })
     .from(memberships)
+    .innerJoin(users, eq(users.id, memberships.userId))
     .where(and(eq(memberships.groupId, groupId), eq(memberships.userId, targetUserId), eq(memberships.status, "ACTIVE")))
     .limit(1);
   if (!target[0]) throw new AppError("NOT_FOUND", "Active member not found.");
+  const targetMember = target[0];
 
   await db.transaction(async (tx) => {
+    const linked = await tx
+      .select({ id: participants.id })
+      .from(participants)
+      .where(and(eq(participants.groupId, groupId), eq(participants.userId, targetUserId)))
+      .limit(1);
+    if (!linked[0]) {
+      await tx.insert(participants).values({
+        groupId,
+        userId: targetUserId,
+        displayName: targetMember.displayName,
+        createdBy: actor.id,
+      });
+    }
     await tx.update(groups).set({ ownerId: targetUserId, updatedAt: new Date() }).where(eq(groups.id, groupId));
     await tx
       .update(memberships)

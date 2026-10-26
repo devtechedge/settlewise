@@ -1,4 +1,3 @@
-import "server-only";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { auditEvents, users } from "@/db/schema";
