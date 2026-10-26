@@ -289,6 +289,17 @@ are applied before deployment. The production demo database is seeded only throu
 in `scripts/seed.ts`. [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) records the exact commands, the
 environment variable types, the health probes, the smoke run, rollback, and branch protection.
 
+## Release status
+
+- Current release: **v1.0.0**.
+- Production: <https://settlewise-psi.vercel.app>, backed by managed Neon Postgres.
+- Every merge to `main` passes the `quality` CI job (lint, typecheck, 38 unit tests, 30 integration
+  tests against PostgreSQL 17, production build, and 16 Playwright scenarios against the built server)
+  and the Security workflow (dependency review and CodeQL).
+- Exact CI run ids, the deployed commit SHA, and the Vercel deployment id for each release are recorded
+  in the GitHub release notes. This is deliberate: a README that names a deployment id is wrong the
+  moment the next docs commit deploys.
+
 ## Known limitations
 
 - No bank, payment-provider, or accounting-system integration.
@@ -298,6 +309,8 @@ environment variable types, the health probes, the smoke run, rollback, and bran
 - The settlement planner is greedy and deterministic, not proven globally minimal.
 - The public demo is a shared fictional account and should not receive sensitive personal data.
 - No offline synchronization or mobile native client.
+- A member cannot leave a group on their own; an owner or editor removes them.
+- A budget can be replaced or changed but not cleared back to "no budget".
 
 ## License
 
