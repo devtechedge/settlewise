@@ -4,7 +4,8 @@ import { clearRateLimits, getSeededGroupPath, logIn } from "./helpers";
 const WIDTHS = [390, 768, 1440];
 
 test("layouts do not scroll horizontally at 390, 768, or 1440", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "mobile", "responsive check runs once, in the mobile project");
+  // Desktop Chromium reports real layout overflow; a mobile-emulated context clamps the document width.
+  test.skip(testInfo.project.name !== "chromium", "responsive check runs once, in the desktop project");
   await clearRateLimits();
 
   async function expectNoOverflow(paths: string[]) {
