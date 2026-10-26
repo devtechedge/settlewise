@@ -89,7 +89,7 @@ export async function loginAction(_prev: FormState, formData: FormData): Promise
     await createSession(user.id, { userAgent: requestHeaders.get("user-agent") });
   } catch (error) {
     if (isAppError(error)) return { error: error.message };
-    console.error("login action failed", error);
+    console.error("login action failed", error instanceof Error ? error.name : "unknown error");
     return { error: "Sign in failed. Try again." };
   }
   redirect(safeNextPath(formData.get("next")?.toString()));
