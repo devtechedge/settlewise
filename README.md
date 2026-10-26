@@ -21,10 +21,10 @@ payments, move money, or provide financial advice.
 **Demo account:** `maya@settlewise.demo`  
 **Demo password:** `settlewise-demo-2026`
 
-The demo is a real Next.js deployment backed by PostgreSQL. It contains two fictional groups, twelve
-household ledger entries, five imported travel entries, budgets, one expense correction, one voided
-duplicate, one reversed reimbursement, and a corrected replacement payment. The shared demo account is
-intended for evaluation only. Do not enter real names or financial records.
+The demo is a real Next.js deployment backed by managed Neon Postgres. It contains two fictional
+groups, twelve household ledger entries, five imported travel entries, budgets, one expense correction,
+one voided duplicate, one reversed reimbursement, and a corrected replacement payment. The shared demo
+account is intended for evaluation only. Do not enter real names or financial records.
 
 ![Settlewise group overview](docs/screenshots/03-group-overview.png)
 
@@ -146,7 +146,8 @@ Recording a payment updates records; it does not initiate money movement.
 
 ## Architecture
 
-Next.js App Router, React 19, strict TypeScript, PostgreSQL, Drizzle ORM, Zod, Vitest, and Playwright.
+Next.js App Router, React 19, strict TypeScript, managed Neon Postgres, Drizzle ORM, Zod, Vitest, and
+Playwright.
 
 ```text
 src/
@@ -159,13 +160,18 @@ src/
   validation/     request schemas
   auth/           sessions, RBAC, invitations, rate limits
   db/             Drizzle schema, pool, migrations
+  lib/            error codes, API envelopes, shared helpers
+  middleware.ts   cookie-presence route guard
 ```
+
+Tests live in `tests/unit`, `tests/integration`, and `e2e/`; operational scripts live in `scripts/`.
 
 The database uses BIGINT minor units and composite foreign keys so an expense currency must match its
 group and every payer, recipient, and split participant must belong to the same group. Migrations are
 versioned under `drizzle/`.
 
-Architecture decisions are recorded in [`docs/adr`](docs/adr).
+Architecture decisions are recorded in [`docs/adr`](docs/adr). Personas, journeys, the state matrix,
+and the permission table are in [`docs/PRODUCT.md`](docs/PRODUCT.md).
 
 ## Quick start
 
@@ -269,9 +275,11 @@ for retention behavior. In short:
 
 ## Deployment
 
-The repository is linked to a Vercel project, and the production database is a dedicated PostgreSQL
-database. Migrations are applied before deployment. The production demo database is seeded only through
-the explicit guard in `scripts/seed.ts`.
+The repository is linked to a Vercel project, and the production database is a dedicated managed Neon
+Postgres database named `settlewise`, separate from every other project on that instance. Migrations
+are applied before deployment. The production demo database is seeded only through the explicit guard
+in `scripts/seed.ts`. [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) records the exact commands, the
+environment variable types, the health probes, the smoke run, rollback, and branch protection.
 
 ## Known limitations
 

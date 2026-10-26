@@ -16,11 +16,14 @@ src/
   validation/          request schemas and shared contracts
   auth/                sessions, passwords, RBAC, invitations, rate limits
   db/                  Drizzle schema, pool, transaction helpers
-  scripts/             migration, reset, seed, QA utilities
-  tests/
-    unit/              pure arithmetic and parser tests
-    integration/       Postgres-backed service tests
-  e2e/                 Playwright journeys, accessibility, responsive checks
+  lib/                 error codes, API envelopes, shared UI helpers
+  env.ts               runtime environment parsing
+  middleware.ts        cookie-presence route guard
+tests/
+  unit/                pure arithmetic, parser, and middleware tests
+  integration/         Postgres-backed service and API route tests
+e2e/                   Playwright journeys, accessibility, responsive checks
+scripts/               migration, test database setup, seed, smoke, QA utilities
 ```
 
 ## Request path
