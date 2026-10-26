@@ -1503,6 +1503,15 @@ table.ledger .row-link:hover {
   gap: 0.8rem;
 }
 
+/* A file input refuses to shrink below the browser's intrinsic control width, which pushes the grid
+   track past a narrow viewport. Pinning it to the track keeps the page from scrolling sideways. */
+.upload-box input[type="file"] {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  font: inherit;
+}
+
 .map-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
