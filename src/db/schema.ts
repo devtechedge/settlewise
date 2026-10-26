@@ -61,7 +61,7 @@ export const sessions = pgTable(
     userAgent: text("user_agent"),
     ipHash: text("ip_hash"),
     createdAt,
-    lastUsedAt: createdAt,
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }).notNull().defaultNow(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
   },

@@ -15,6 +15,13 @@
       "when": 1792869560855,
       "tag": "0001_true_wendell_vaughn",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792875759560,
+      "tag": "0002_tranquil_deathbird",
+      "breakpoints": true
     }
   ]
 }
