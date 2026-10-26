@@ -1,14 +1,15 @@
-import { chromium } from "@playwright/test";
+import { chromium, type Response as BrowserResponse } from "@playwright/test";
 
 const base = process.env.QA_BASE_URL ?? "http://localhost:3100";
-const routes = ["/", "/login", "/signup", "/groups", "/account", "/settings"];
 
 function kb(bytes: number) {
   return (bytes / 1024).toFixed(1).padStart(7);
 }
 
+type Bucket = "script" | "stylesheet" | "font" | "image" | "document" | "other";
+const bucketOrder: Bucket[] = ["script", "stylesheet", "font", "image", "document", "other"];
+
 const browser = await chromium.launch();
-const context = await browser.newContext({ baseURL: base, viewport: { width: 1280, height: 900 } });
 
 // The ledger pages need a session; the demo endpoint is the only way to get one without a form flow.
 const loginResponse = await fetch(`${base}/api/auth/demo`, { method: "POST", headers: { origin: base } });
@@ -23,44 +24,61 @@ if (separator < 1) {
   console.error("The demo login response did not include a usable session cookie.");
   process.exit(1);
 }
-const name = cookie.slice(0, separator);
-const value = cookie.slice(separator + 1);
-await context.addCookies([{ name, value, url: base }]);
+const sessionCookie = { name: cookie.slice(0, separator), value: cookie.slice(separator + 1), url: base };
 
-let groupPath = "/groups";
-{
-  const probe = await context.newPage();
-  await probe.goto(`${base}/groups`);
-  const href = await probe.locator('a[href^="/groups/"]').first().getAttribute("href");
-  if (href) groupPath = href;
-  await probe.close();
+const probeContext = await browser.newContext({ baseURL: base, viewport: { width: 1280, height: 900 } });
+await probeContext.addCookies([sessionCookie]);
+const probe = await probeContext.newPage();
+await probe.goto(`${base}/groups`);
+const groupPath = (await probe.locator('article.card h2 a[href^="/groups/"]').first().getAttribute("href")) ?? "/groups";
+await probeContext.close();
+
+// Each page is measured in a fresh context so the numbers describe a first visit, not a warm cache.
+async function measure(route: string, signedIn: boolean) {
+  const context = await browser.newContext({ baseURL: base, viewport: { width: 1280, height: 900 } });
+  if (signedIn) await context.addCookies([sessionCookie]);
+  const page = await context.newPage();
+  const responses: BrowserResponse[] = [];
+  page.on("response", (response) => responses.push(response));
+  await page.goto(`${base}${route}`, { waitUntil: "networkidle" });
+  const bytes: Record<Bucket, number> = { script: 0, stylesheet: 0, font: 0, image: 0, document: 0, other: 0 };
+  for (const response of responses) {
+    const sizes = await response.request().sizes().catch(() => null);
+    const size = sizes?.responseBodySize ?? 0;
+    const key = bucketOrder.find((bucket) => bucket === response.request().resourceType()) ?? "other";
+    bytes[key] += size;
+  }
+  await context.close();
+  return bucketOrder.reduce((acc, bucket) => acc + bytes[bucket], 0) > 0 ? bytes : null;
 }
 
-const targets = [...routes, `${groupPath}/expenses`, `${groupPath}/settlements`, `${groupPath}/imports`, `${groupPath}/reports`];
+const targets: [string, boolean][] = [
+  ["/", false],
+  ["/login", false],
+  ["/signup", false],
+  ["/groups", true],
+  ["/account", true],
+  ["/settings", true],
+  [`${groupPath}/expenses`, true],
+  [`${groupPath}/settlements`, true],
+  [`${groupPath}/imports`, true],
+  [`${groupPath}/reports`, true],
+];
+
+console.log(`First visit, on-the-wire bytes per page against ${base}`);
+console.log("route".padEnd(50) + "   js  style   font  image   doc   total");
 const totals: Record<string, number> = {};
-
-type Bucket = "script" | "stylesheet" | "font" | "image" | "document" | "other";
-const bucketOrder: Bucket[] = ["script", "stylesheet", "font", "image", "document", "other"];
-
-console.log(`First-load bytes per page against ${base}`);
-console.log("route".padEnd(46) + "   js  style   font  image   doc   total");
-for (const route of targets) {
-  const page = await context.newPage();
-  const bytes: Record<Bucket, number> = { script: 0, stylesheet: 0, font: 0, image: 0, document: 0, other: 0 };
-  page.on("response", async (response) => {
-    const type = response.request().resourceType();
-    const header = Number(response.headers()["content-length"] ?? "0");
-    const size = header > 0 ? header : (await response.body().catch(() => new Uint8Array())).length;
-    const key: Bucket = bucketOrder.find((bucket) => bucket === type) ?? "other";
-    bytes[key] += size;
-  });
-  await page.goto(`${base}${route}`, { waitUntil: "networkidle" });
+for (const [route, signedIn] of targets) {
+  const bytes = await measure(route, signedIn);
+  if (!bytes) {
+    console.log(route.padEnd(50) + "  (no responses recorded)");
+    continue;
+  }
   const total = bucketOrder.reduce((acc, bucket) => acc + bytes[bucket], 0);
   totals[route] = total;
-  console.log(route.padEnd(46) + bucketOrder.map((bucket) => kb(bytes[bucket])).join(" ") + " " + kb(total));
-  await page.close();
+  console.log(route.padEnd(50) + bucketOrder.map((bucket) => kb(bytes[bucket])).join(" ") + " " + kb(total));
 }
 
 const largest = Object.entries(totals).sort((a, b) => b[1] - a[1])[0] ?? ["/", 0];
-console.log(`Largest page: ${largest[0]} at ${kb(largest[1])} kB transferred.`);
+console.log(`Largest first visit: ${largest[0]} at ${kb(largest[1])} kB.`);
 await browser.close();

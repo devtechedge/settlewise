@@ -20,7 +20,9 @@
     "db:seed:test": "tsx scripts/seed.ts --test",
     "smoke": "tsx scripts/smoke.ts",
     "db:seed:dev": "tsx scripts/seed.ts --dev",
-    "perf:test": "tsx scripts/perf.ts --test"
+    "perf:test": "tsx scripts/perf.ts --test",
+    "qa:bundle": "tsx scripts/qa-bundle.ts",
+    "qa:screens": "tsx scripts/qa-screens.ts"
   },
   "dependencies": {
     "drizzle-orm": "0.45.4",
