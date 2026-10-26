@@ -79,6 +79,7 @@ describe("invitations and roles", () => {
     const editor = await makeUser("Control Editor", "control-editor");
     const group = await makeGroup(owner, "Control group");
     const ownerId = await makeMember(group.id, owner, "EDITOR", "Control Owner");
+    await makeMember(group.id, editor, "EDITOR", "Control Editor");
     await expectAppError(() => setParticipantStatus(owner, group.id, ownerId, "INACTIVE"), "CONFLICT");
     await addParticipant(editor, group.id, "Added by editor");
     await transferOwnership(owner, group.id, editor.id);
