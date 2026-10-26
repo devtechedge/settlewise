@@ -17,14 +17,14 @@ test("manual CSV name mapping is included in the preview request", async ({ page
   await page.setInputFiles("#csv-file", "e2e/fixtures/manual-mapping.csv");
   await page.getByRole("button", { name: "Preview import" }).click();
   await expect(page.getByText("1 error", { exact: true })).toBeVisible();
-  await page.getByLabel("Map payer Gamma").selectOption({ label: "Gamma" });
+  await page.getByLabel("Map payer Epsilon").selectOption({ label: "Gamma" });
   await page.getByLabel("Map beneficiary Gamma").selectOption({ label: "Gamma" });
   await page.getByLabel("Map beneficiary Delta").selectOption({ label: "Delta" });
   const requestPromise = page.waitForRequest((request) => request.url().includes("/imports/preview") && request.method() === "POST");
   await page.getByRole("button", { name: "Preview again" }).click();
   const request = await requestPromise;
   const body = JSON.parse(request.postData() ?? "{}");
-  expect(body.mapping.payerMap.Gamma).toBeTruthy();
+  expect(body.mapping.payerMap.Epsilon).toBeTruthy();
   expect(body.mapping.participantMap.Gamma).toBeTruthy();
   expect(body.mapping.participantMap.Delta).toBeTruthy();
   await expect(page.getByText("1 valid", { exact: true })).toBeVisible();
