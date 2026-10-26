@@ -1,6 +1,5 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { consumeRateLimit } from "@/auth/rate-limit";
-import { db } from "@/db/client";
 import { AppError } from "@/lib/errors";
 import { errorResponse } from "@/lib/api";
 import { createExpense } from "@/services/expenses";

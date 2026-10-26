@@ -1,8 +1,8 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db/client";
-import { auditEvents, groups, invitations, memberships, participants, sessions, users } from "@/db/schema";
-import { createInvitation, addParticipant, setGroupArchived, setParticipantStatus, transferOwnership } from "@/services/groups";
+import { auditEvents, expenses, groups, invitations, memberships, participants, sessions, users } from "@/db/schema";
+import { createInvitation, addParticipant, deleteGroup, setGroupArchived, setParticipantStatus, transferOwnership } from "@/services/groups";
 import { createExpense } from "@/services/expenses";
 import { recordPayment, reversePayment } from "@/services/payments";
 import { acceptInvitation } from "@/auth/invitations";
@@ -209,6 +209,32 @@ describe("invitations and roles", () => {
       amount: "100.00",
       split: { method: "EQUAL", participantIds: [ownerId] },
     });
+  });
+
+  it("deletes a group only on an exact name confirmation and cascades its ledger", async () => {
+    const owner = await makeUser("Purge Owner", "purge-owner");
+    const editor = await makeUser("Purge Editor", "purge-editor");
+    const group = await makeGroup(owner, "Purge group");
+    const ownerId = await makeMember(group.id, owner, "EDITOR", "Purge Owner");
+    await makeMember(group.id, editor, "EDITOR", "Purge Editor");
+    const expense = await createExpense(owner, group.id, {
+      description: "Purge expense",
+      category: "OTHER",
+      occurredOn: daysAgo(1),
+      payerParticipantId: ownerId,
+      amount: "100.00",
+      split: { method: "EQUAL", participantIds: [ownerId] },
+    });
+
+    await expectAppError(() => deleteGroup(editor, group.id, "Purge group"), "FORBIDDEN");
+    await expectAppError(() => deleteGroup(owner, group.id, "Purge"), "VALIDATION_ERROR");
+    expect(await db.select().from(expenses).where(eq(expenses.id, expense.expenseId))).toHaveLength(1);
+
+    await deleteGroup(owner, group.id, "Purge group");
+    expect(await db.select().from(groups).where(eq(groups.id, group.id))).toHaveLength(0);
+    expect(await db.select().from(expenses).where(eq(expenses.id, expense.expenseId))).toHaveLength(0);
+    expect(await db.select().from(auditEvents).where(eq(auditEvents.groupId, group.id))).toHaveLength(0);
+    await expectAppError(() => deleteGroup(owner, group.id, "Purge group"), "NOT_FOUND");
   });
 });
 

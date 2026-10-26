@@ -96,6 +96,39 @@ const health = await page.request.get("/api/health");
 assert(health.ok(), "health check failed");
 console.log("health ok");
 
+const groupId = groupPath.split("/").pop();
+assert(groupId, "group id missing from the ledger URL");
+const groupApiPath = `/api/groups/${groupId}`;
+
+async function deleteGroupRequest(confirmation: string) {
+  return page.evaluate(
+    async ({ path, name }) => {
+      const response = await fetch(path, {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ confirmation: name }),
+      });
+      const body = (await response.json().catch(() => null)) as { error?: { code?: string; message?: string } } | null;
+      return { status: response.status, code: body?.error?.code ?? "ok", message: body?.error?.message ?? "" };
+    },
+    { path: groupApiPath, name: confirmation },
+  );
+}
+
+const mismatched = await deleteGroupRequest("Not the group name");
+assert(mismatched.status === 400 && mismatched.code === "VALIDATION_ERROR", "group deletion accepted a wrong confirmation");
+const stillThere = await page.request.get(groupApiPath);
+assert(stillThere.ok(), "group vanished after a rejected confirmation");
+console.log("deletion confirmation guard ok");
+
+const deleted = await deleteGroupRequest(groupName);
+assert(deleted.status === 200, `group deletion failed (${deleted.status}): ${deleted.message}`);
+const gone = await page.request.get(groupApiPath);
+assert(gone.status() === 404, `deleted group still resolves with ${gone.status()}`);
+await page.goto(groupPath);
+await page.getByRole("heading", { name: "That page is not here" }).waitFor();
+console.log("group cleanup ok");
+
 await context.close();
 await browser.close();
 console.log("production smoke passed");
