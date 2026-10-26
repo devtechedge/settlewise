@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePageAuth } from "@/auth/page-auth";
-import { getMembership } from "@/auth/rbac";
+import { canEditTransactions, getMembership } from "@/auth/rbac";
 import { GroupNav } from "@/components/group-nav";
 import { Badge } from "@/components/ui";
 
@@ -18,7 +18,7 @@ export default async function GroupLayout({
   const auth = await requirePageAuth(`/groups/${groupId}`);
   const membership = await getMembership(groupId, auth.user.id);
   if (!membership) notFound();
-  const canEdit = membership.role === "OWNER" || membership.role === "EDITOR";
+  const canEdit = membership.groupStatus === "ACTIVE" && canEditTransactions(membership.role);
 
   return (
     <>

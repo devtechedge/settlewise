@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePageAuth } from "@/auth/page-auth";
-import { getMembership } from "@/auth/rbac";
+import { canEditTransactions, getMembership } from "@/auth/rbac";
 import { listParticipants } from "@/repositories/groups";
 import { listImportBatches } from "@/services/imports";
 import { ImportPanel } from "@/components/import-panel";
@@ -16,7 +16,7 @@ export default async function ImportsPage({ params }: { params: Promise<{ groupI
   const auth = await requirePageAuth(`/groups/${groupId}/imports`);
   const membership = await getMembership(groupId, auth.user.id);
   if (!membership) notFound();
-  const canEdit = membership.role === "OWNER" || membership.role === "EDITOR";
+  const canEdit = membership.groupStatus === "ACTIVE" && canEditTransactions(membership.role);
 
   if (!canEdit) {
     return (
@@ -56,6 +56,7 @@ export default async function ImportsPage({ params }: { params: Promise<{ groupI
       </div>
       <ImportPanel
         groupId={groupId}
+        archived={membership.groupStatus === "ARCHIVED"}
         participants={participants
           .filter((participant) => participant.status === "ACTIVE")
           .map((participant) => ({ id: participant.id, displayName: participant.displayName }))}
