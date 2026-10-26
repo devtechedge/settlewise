@@ -61,7 +61,6 @@ export const isoDateSchema = z
 
 export const currencySchema = z.enum(SUPPORTED_CURRENCY_CODES);
 export const categorySchema = z.enum(EXPENSE_CATEGORIES);
-export const roleSchema = z.enum(["OWNER", "EDITOR", "MEMBER"]);
 
 export const uuidSchema = z.uuid("Choose a valid record.");
 
@@ -206,7 +205,3 @@ export const deleteAccountSchema = z.object({
   confirmation: z.literal("DELETE", { message: "Type DELETE to confirm." }),
 });
 
-export const paginationSchema = z.object({
-  page: z.coerce.number().int().min(1).max(10_000).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(25),
-});

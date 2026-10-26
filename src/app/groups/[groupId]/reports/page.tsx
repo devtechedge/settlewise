@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePageAuth } from "@/auth/page-auth";
-import { getMembership } from "@/auth/rbac";
+import { canEditTransactions, getMembership } from "@/auth/rbac";
 import { defaultReportRange, getReports } from "@/services/reports";
 import { isoDateSchema } from "@/validation/schemas";
 import { formatMinor } from "@/domain/money/money";
@@ -36,7 +36,7 @@ export default async function ReportsPage({
   };
   const data = await getReports(groupId, auth.user.id, range);
   if (!data) notFound();
-  const canEdit = membership.role === "OWNER" || membership.role === "EDITOR";
+  const canEdit = membership.groupStatus === "ACTIVE" && canEditTransactions(membership.role);
   const exportQuery = `from=${range.from}&to=${range.to}`;
 
   return (

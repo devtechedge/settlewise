@@ -9,10 +9,9 @@ import { isAppError } from "@/lib/errors";
 import { loginSchema, signupSchema } from "@/validation/schemas";
 import { acceptInvitation } from "./invitations";
 import { hashPassword, verifyPassword } from "./password";
-import { limitDemoLogin, limitLogin, limitSignup } from "./rate-limit";
+import { limitLogin, limitSignup } from "./rate-limit";
 import { clearSessionCookie, createSession, getCurrentAuth, revokeSession } from "./session";
 import { safeNextPath } from "./page-auth";
-import { DEMO_EMAIL } from "./constants";
 import type { FormState } from "./form-state";
 
 
@@ -93,25 +92,6 @@ export async function loginAction(_prev: FormState, formData: FormData): Promise
     return { error: "Sign in failed. Try again." };
   }
   redirect(safeNextPath(formData.get("next")?.toString()));
-}
-
-export async function demoLoginAction(): Promise<FormState> {
-  try {
-    const requestHeaders = await headers();
-    await limitDemoLogin({ headers: requestHeaders });
-    const rows = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(and(sql`lower(${users.email}) = ${DEMO_EMAIL}`, isNull(users.disabledAt), isNull(users.anonymizedAt)))
-      .limit(1);
-    const user = rows[0];
-    if (!user) return { error: "The demo account is not available on this deployment." };
-    await createSession(user.id, { userAgent: requestHeaders.get("user-agent") });
-  } catch (error) {
-    if (isAppError(error)) return { error: error.message };
-    return { error: "Demo sign in failed. Try again." };
-  }
-  redirect("/groups");
 }
 
 export async function logoutAction() {

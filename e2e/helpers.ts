@@ -11,6 +11,14 @@ export async function clearRateLimits() {
   await client.end();
 }
 
+// The URL changes before the redirected page has finished rendering, so a caller that acts on the
+// next step would race an in-flight navigation. Waiting for the groups page to be visibly settled
+// makes every journey start from the same confirmed state.
+export async function expectGroupsLanding(page: Page) {
+  await expect(page).toHaveURL(/\/groups/);
+  await expect(page.getByRole("link", { name: "New group" })).toBeVisible();
+}
+
 export async function signUp(page: Page, name: string, email: string, password: string) {
   await page.goto(process.env.E2E_BASE_URL ? `${process.env.E2E_BASE_URL}/signup` : "/signup");
   await page.fill("#displayName", name);
@@ -18,7 +26,7 @@ export async function signUp(page: Page, name: string, email: string, password: 
   await page.fill("#password", password);
   await page.check('input[name="acceptTerms"]');
   await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page).toHaveURL(/\/groups/);
+  await expectGroupsLanding(page);
 }
 
 export async function getSeededGroupPath(): Promise<string> {
@@ -38,5 +46,5 @@ export async function logIn(page: Page, email: string, password: string) {
   await page.fill("#email", email);
   await page.fill("#password", password);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/groups/);
+  await expectGroupsLanding(page);
 }

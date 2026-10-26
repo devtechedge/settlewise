@@ -121,25 +121,7 @@ export async function revokeOtherSessions(userId: string, keepSessionId: string)
     .where(and(eq(sessions.userId, userId), ne(sessions.id, keepSessionId), isNull(sessions.revokedAt)));
 }
 
-export async function revokeAllSessions(userId: string) {
-  await db.update(sessions).set({ revokedAt: new Date() }).where(eq(sessions.userId, userId));
-}
-
 export async function clearSessionCookie() {
   const store = await cookies();
   store.delete(SESSION_COOKIE);
-}
-
-export async function listSessions(userId: string) {
-  return db
-    .select({
-      id: sessions.id,
-      createdAt: sessions.createdAt,
-      lastUsedAt: sessions.lastUsedAt,
-      expiresAt: sessions.expiresAt,
-      userAgent: sessions.userAgent,
-    })
-    .from(sessions)
-    .where(and(eq(sessions.userId, userId), isNull(sessions.revokedAt), gt(sessions.expiresAt, new Date())))
-    .orderBy(sessions.createdAt);
 }

@@ -368,7 +368,10 @@ export function ExpenseForm({
                   />
                   <span className="who">
                     {participant.displayName}
-                    <small>{participant.status === "ACTIVE" ? "beneficiary" : "inactive participant"}</small>
+                    <small>
+                      {participant.status === "ACTIVE" ? "beneficiary" : "inactive participant"}
+                      {isSelected ? "" : " · excluded"}
+                    </small>
                   </span>
                   {method === "EXACT" ? (
                     <input

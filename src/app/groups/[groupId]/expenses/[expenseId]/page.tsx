@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePageAuth } from "@/auth/page-auth";
-import { getMembership } from "@/auth/rbac";
+import { canEditTransactions, getMembership } from "@/auth/rbac";
 import { getExpenseDetail } from "@/repositories/expenses";
 import { CATEGORY_LABELS } from "@/domain/money/currency";
 import { formatPercentFromBasisPoints } from "@/domain/money/labels";
@@ -35,7 +35,7 @@ export default async function ExpenseDetailPage({
   const detail = await getExpenseDetail(groupId, expenseId);
   if (!detail) notFound();
 
-  const canEdit = membership.role === "OWNER" || membership.role === "EDITOR";
+  const canEdit = membership.groupStatus === "ACTIVE" && canEditTransactions(membership.role);
   const { expense, splits, revisions } = detail;
   const splitTotal = splits.reduce((acc, split) => acc + split.allocatedMinor, 0n);
   const method = splits[0]?.method ?? "EQUAL";

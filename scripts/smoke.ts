@@ -23,6 +23,7 @@ await page.fill("#password", password);
 await page.check('input[name="acceptTerms"]');
 await page.getByRole("button", { name: "Create account" }).click();
 await page.waitForURL("**/groups");
+await page.getByRole("link", { name: "New group" }).waitFor();
 console.log("signup ok");
 
 await page.getByRole("link", { name: "New group" }).click();

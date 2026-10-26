@@ -25,14 +25,16 @@ export default defineConfig({
     { name: "mobile", use: { ...devices["Pixel 7"] } },
   ],
   webServer: {
-    command: process.env.CI ? `npx next start -p ${port}` : `npx next dev -p ${port}`,
+    // Always the production server, so local runs exercise the same compiled output CI does. A dev
+    // server recompiles routes mid-suite and its first-request latency is what made mobile tests flaky.
+    command: `npx next start -p ${port}`,
     url: baseURL,
     timeout: 180_000,
     reuseExistingServer: !process.env.CI,
     env: {
       DATABASE_URL: process.env.TEST_DATABASE_URL ?? "",
       APP_URL: baseURL,
-      NODE_ENV: process.env.CI ? "production" : "development",
+      NODE_ENV: "production",
     },
   },
 });

@@ -106,10 +106,12 @@ export function ImportPanel({
   groupId,
   participants,
   batches,
+  archived = false,
 }: {
   groupId: string;
   participants: Participant[];
   batches: BatchSummary[];
+  archived?: boolean;
 }) {
   const router = useRouter();
   const [batch, setBatch] = useState<UploadResult | null>(null);
@@ -239,10 +241,18 @@ export function ImportPanel({
   return (
     <div className="stack-lg">
       <div className="import-steps" aria-label="Import progress">
-        <div className={`import-step ${batch ? "complete" : "current"}`}><strong>01</strong>Upload a CSV</div>
-        <div className={`import-step ${preview ? "complete" : batch ? "current" : ""}`}><strong>02</strong>Map columns and names</div>
-        <div className={`import-step ${committed ? "complete" : preview ? "current" : ""}`}><strong>03</strong>Review duplicates and errors</div>
-        <div className={`import-step ${committed ? "current" : ""}`}><strong>04</strong>Commit atomically</div>
+        <div className={`import-step ${batch ? "complete" : "current"}`} aria-current={batch ? undefined : "step"}>
+          <strong>01</strong>Upload a CSV{batch ? null : <span className="visually-hidden"> (current step)</span>}
+        </div>
+        <div className={`import-step ${preview ? "complete" : batch ? "current" : ""}`} aria-current={!preview && batch ? "step" : undefined}>
+          <strong>02</strong>Map columns and names{!preview && batch ? <span className="visually-hidden"> (current step)</span> : null}
+        </div>
+        <div className={`import-step ${committed ? "complete" : preview ? "current" : ""}`} aria-current={!committed && preview ? "step" : undefined}>
+          <strong>03</strong>Review duplicates and errors{!committed && preview ? <span className="visually-hidden"> (current step)</span> : null}
+        </div>
+        <div className={`import-step ${committed ? "current" : ""}`} aria-current={committed ? "step" : undefined}>
+          <strong>04</strong>Commit atomically{committed ? <span className="visually-hidden"> (current step)</span> : null}
+        </div>
       </div>
 
       {error ? <div className="alert" role="alert">{error}</div> : null}
@@ -259,6 +269,7 @@ export function ImportPanel({
                 id="csv-file"
                 type="file"
                 accept=".csv,text/csv"
+                disabled={archived}
                 onChange={(event) => {
                   const file = event.target.files?.[0];
                   if (file) void upload(file);
@@ -397,7 +408,7 @@ export function ImportPanel({
                   type="button"
                   className="button"
                   onClick={() => void runPreview()}
-                  disabled={!readyForPreview || previewing}
+                  disabled={archived || !readyForPreview || previewing}
                 >
                   {previewing ? "Building preview..." : stale && preview ? "Preview again" : "Preview import"}
                 </button>
@@ -537,7 +548,7 @@ export function ImportPanel({
                       type="button"
                       className="button"
                       onClick={() => void commit()}
-                      disabled={committing || stale || preview.counts.validCount + preview.counts.duplicateCount === 0}
+                      disabled={archived || committing || stale || preview.counts.validCount + preview.counts.duplicateCount === 0}
                     >
                       {committing
                         ? "Committing..."

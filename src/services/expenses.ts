@@ -376,13 +376,6 @@ export async function voidExpense(actor: Actor, groupId: string, expenseId: stri
   return { revision: input.expectedRevision + 1 };
 }
 
-export function previewAllocation(currencyCode: string, amount: string, split: CreateInput["split"]) {
-  const currency = getCurrency(currencyCode);
-  const amountMinor = parseMoneyToMinor(amount, currency.code);
-  return allocateSplit(amountMinor, toSplitInput(currency.code, split));
-}
-
-
 export async function resolveExpenseAccess(expenseId: string, userId: string) {
   const rows = await db.select({ groupId: expenses.groupId }).from(expenses).where(eq(expenses.id, expenseId)).limit(1);
   const expense = rows[0];

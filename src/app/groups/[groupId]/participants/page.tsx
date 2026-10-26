@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requirePageAuth } from "@/auth/page-auth";
-import { getMembership } from "@/auth/rbac";
+import { canManagePeople, getMembership } from "@/auth/rbac";
 import { listMembers, listParticipants, listPendingInvitations } from "@/repositories/groups";
 import { getParticipantBalances } from "@/repositories/ledger";
 import { Badge, PageHeader } from "@/components/ui";
@@ -19,7 +19,10 @@ export default async function ParticipantsPage({ params }: { params: Promise<{ g
   const membership = await getMembership(groupId, auth.user.id);
   if (!membership) notFound();
   const isOwner = membership.role === "OWNER";
-  const canManage = isOwner || membership.role === "EDITOR";
+  const canManage = membership.groupStatus === "ACTIVE" && canManagePeople(membership.role);
+  // Archiving and deletion stay reachable for an owner; only writes that the server blocks while a
+  // group is archived are hidden here.
+  const canChangeMembership = isOwner && membership.groupStatus === "ACTIVE";
 
   const [participants, members, pendingInvites, balanceData] = await Promise.all([
     listParticipants(groupId),
@@ -107,7 +110,7 @@ export default async function ParticipantsPage({ params }: { params: Promise<{ g
                   {canManage ? <th scope="col">Email</th> : null}
                   <th scope="col">Role</th>
                   <th scope="col">Joined</th>
-                  {isOwner ? <th scope="col">Controls</th> : null}
+                  {canChangeMembership ? <th scope="col">Controls</th> : null}
                 </tr>
               </thead>
               <tbody>
@@ -120,7 +123,7 @@ export default async function ParticipantsPage({ params }: { params: Promise<{ g
                     {canManage ? <td className="small">{member.email}</td> : null}
                     <td><Badge variant={member.role.toLowerCase()}>{member.role.toLowerCase()}</Badge></td>
                     <td className="mono small">{member.joinedAt.toISOString().slice(0, 10)}</td>
-                    {isOwner ? (
+                    {canChangeMembership ? (
                       <td>
                         <MemberActions
                           groupId={groupId}
@@ -142,7 +145,7 @@ export default async function ParticipantsPage({ params }: { params: Promise<{ g
         </div>
       </section>
 
-      {isOwner ? (
+      {canChangeMembership ? (
         <section className="card">
           <div className="card-header">
             <h2>Invite a member</h2>

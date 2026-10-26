@@ -24,6 +24,9 @@ export default async function SettlementsPage({ params }: { params: Promise<{ gr
   const viewerParticipant = data.balances.find((row) => row.userId === auth.user.id);
   const isMember = membership.role === "MEMBER";
   const canReverseAny = membership.role === "OWNER";
+  // Recording or reversing a payment is a write, and the payments service rejects both while the
+  // group is archived, so the forms are not offered either.
+  const canRecord = membership.groupStatus === "ACTIVE";
   const debtors = data.balances
     .filter((row) => row.netMinor < 0n)
     .map((row) => ({ id: row.participantId, name: row.displayName, netMinor: row.netMinor }));
@@ -100,22 +103,24 @@ export default async function SettlementsPage({ params }: { params: Promise<{ gr
           </div>
         </section>
 
-        <section className="card">
-          <div className="card-header">
-            <h2>Record a reimbursement</h2>
-          </div>
-          <div className="card-body">
-            <PaymentForm
-              groupId={groupId}
-              currency={membership.currency}
-              debtors={debtors}
-              creditors={creditors}
-              suggestions={suggestions}
-              memberParticipantId={viewerParticipant?.participantId ?? null}
-              isMember={isMember}
-            />
-          </div>
-        </section>
+        {canRecord ? (
+          <section className="card">
+            <div className="card-header">
+              <h2>Record a reimbursement</h2>
+            </div>
+            <div className="card-body">
+              <PaymentForm
+                groupId={groupId}
+                currency={membership.currency}
+                debtors={debtors}
+                creditors={creditors}
+                suggestions={suggestions}
+                memberParticipantId={viewerParticipant?.participantId ?? null}
+                isMember={isMember}
+              />
+            </div>
+          </section>
+        ) : null}
       </div>
 
       <section className="card">
@@ -146,6 +151,7 @@ export default async function SettlementsPage({ params }: { params: Promise<{ gr
                 <tbody>
                   {payments.rows.map((payment) => {
                     const canReverse =
+                      canRecord &&
                       payment.status === "RECORDED" &&
                       !payment.reversalOfPaymentId &&
                       (canReverseAny || payment.createdById === auth.user.id);

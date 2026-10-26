@@ -2,11 +2,6 @@ import { and, asc, desc, eq, gt, isNull, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { budgets, expenses, groups, invitations, memberships, participants, users } from "@/db/schema";
 
-export async function getGroup(groupId: string) {
-  const rows = await db.select().from(groups).where(eq(groups.id, groupId)).limit(1);
-  return rows[0] ?? null;
-}
-
 export async function listGroupsForUser(userId: string) {
   return db
     .select({

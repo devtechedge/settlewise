@@ -46,6 +46,19 @@ export default async function EditExpensePage({ params }: { params: Promise<{ gr
   }
 
   const participants = await listParticipants(groupId);
+
+  if (membership.groupStatus === "ARCHIVED") {
+    return (
+      <div className="card">
+        <div className="card-body stack">
+          <p className="eyebrow">Archived group</p>
+          <h2>This ledger is read-only</h2>
+          <p className="muted">Restore the group from the participants page before correcting an expense.</p>
+          <Link href={`/groups/${groupId}/expenses/${expenseId}`} className="button">View history</Link>
+        </div>
+      </div>
+    );
+  }
   const currency = getCurrency(detail.expense.currency);
   const method = detail.splits[0]?.method ?? "EQUAL";
   const initial: ExpenseInitial = {

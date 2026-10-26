@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requirePageAuth } from "@/auth/page-auth";
-import { getMembership } from "@/auth/rbac";
+import { canEditTransactions, getMembership } from "@/auth/rbac";
 import { listExpenses } from "@/repositories/expenses";
 import { listParticipants } from "@/repositories/groups";
 import { EXPENSE_CATEGORIES, CATEGORY_LABELS } from "@/domain/money/currency";
@@ -24,7 +24,7 @@ export default async function ExpensesPage({
   const auth = await requirePageAuth(`/groups/${groupId}/expenses`);
   const membership = await getMembership(groupId, auth.user.id);
   if (!membership) return null;
-  const canEdit = membership.role === "OWNER" || membership.role === "EDITOR";
+  const canEdit = membership.groupStatus === "ACTIVE" && canEditTransactions(membership.role);
 
   const read = (key: string) => (typeof query[key] === "string" ? (query[key] as string) : "");
   const q = read("q");
