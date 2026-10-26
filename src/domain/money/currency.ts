@@ -60,6 +60,3 @@ export const CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   OTHER: "Other",
 };
 
-export function isExpenseCategory(value: string): value is ExpenseCategory {
-  return (EXPENSE_CATEGORIES as readonly string[]).includes(value);
-}

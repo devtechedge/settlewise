@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte } from "drizzle-orm";
 import { db } from "@/db/client";
 import { auditEvents, expenses, expenseSplits, participants, settlementPayments, users } from "@/db/schema";
 import { computeNetBalances, generateSettlementPlan, type LedgerExpense, type LedgerPayment } from "@/domain/settlement/settlement";
@@ -119,14 +119,3 @@ export async function listRecentAuditEvents(groupId: string, limit = 6) {
     .limit(limit);
 }
 
-export async function countFinancialRecords(groupId: string) {
-  const [expenseCount] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(expenses)
-    .where(eq(expenses.groupId, groupId));
-  const [paymentCount] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(settlementPayments)
-    .where(eq(settlementPayments.groupId, groupId));
-  return { expenses: expenseCount?.count ?? 0, payments: paymentCount?.count ?? 0 };
-}
