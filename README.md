@@ -92,7 +92,8 @@ truth:
 - Server-side OWNER, EDITOR, and MEMBER checks.
 - Same-origin checks for cookie-authenticated mutations.
 - Database-backed rate limiting.
-- CSP and security headers.
+- Route middleware redirects missing sessions, while pages and APIs still verify the session and role.
+- CSP, security headers, robots rules, and a public-only sitemap.
 - Account JSON export and anonymizing deletion path.
 
 ## Supported currencies
@@ -236,7 +237,7 @@ Current local gates:
 - 28 Vitest domain tests for parsing, allocation, balances, and settlement.
 - 14 PostgreSQL integration tests for revisions, concurrency rejection, payments, reversals, imports,
   exports, invitations, roles, archiving, and account deletion.
-- 14 Playwright assertions across demo data, owner workflow, authorization, axe scans, and mobile
+- 16 Playwright scenarios across demo data, owner workflow, authorization, axe scans, and mobile
   overflow. Two accessibility checks intentionally run once in the desktop project.
 
 Run them in this order:
