@@ -41,7 +41,7 @@ export default async function GroupsPage() {
                 <Badge variant={group.role.toLowerCase()}>{group.role}</Badge>
               </div>
               <div className="card-body">
-                <div className="detail-list">
+                <dl className="detail-list">
                   <div className="detail-row">
                     <dt>Recorded spending</dt>
                     <dd><Money minor={group.totalMinor} currency={group.currency} /></dd>
@@ -62,7 +62,7 @@ export default async function GroupsPage() {
                     <dt>Currency</dt>
                     <dd className="mono">{group.currency}</dd>
                   </div>
-                </div>
+                </dl>
                 <div className="form-actions" style={{ marginTop: "1rem" }}>
                   <Link href={`/groups/${group.id}`} className="button secondary small">Open ledger</Link>
                   <Link href={`/groups/${group.id}/expenses/new`} className="button ghost small">Add expense</Link>

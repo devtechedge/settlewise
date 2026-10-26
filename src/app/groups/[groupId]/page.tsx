@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { requirePageAuth } from "@/auth/page-auth";
+import { getMembership } from "@/auth/rbac";
 import { getGroupOverview } from "@/services/groups";
 import { formatMinor } from "@/domain/money/money";
 import { CATEGORY_LABELS, type ExpenseCategory } from "@/domain/money/currency";
@@ -21,6 +23,7 @@ function actionLabel(action: string) {
 export default async function GroupOverviewPage({ params }: { params: Promise<{ groupId: string }> }) {
   const { groupId } = await params;
   const auth = await requirePageAuth(`/groups/${groupId}`);
+  if (!(await getMembership(groupId, auth.user.id))) notFound();
   const data = await getGroupOverview(groupId, auth.user.id);
   const names = new Map(data.balances.map((row) => [row.participantId, row.displayName]));
   const canManage = data.membership.role === "OWNER" || data.membership.role === "EDITOR";

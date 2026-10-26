@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { sql } from "drizzle-orm";
 
@@ -33,13 +34,21 @@ process.env.DATABASE_URL = targetUrl;
 const { db } = await import("../src/db/client");
 const schema = await import("../src/db/schema");
 const { hashPassword } = await import("../src/auth/password");
-const { createGroup, createInvitation, addParticipant, setBudget } = await import("../src/services/groups");
+const { createGroup, createInvitation, setBudget } = await import("../src/services/groups");
 const { createExpense, updateExpense, voidExpense } = await import("../src/services/expenses");
 const { recordPayment, reversePayment } = await import("../src/services/payments");
 const { createImportBatch, previewImportMapping, commitImport } = await import("../src/services/imports");
 const { exportGroupCsv } = await import("../src/services/exports");
 const { getParticipantBalances } = await import("../src/repositories/ledger");
 
+const SEED_NAMESPACE = "2f3f1b82-4c75-4f61-b2e8-4f72bd31d4c1";
+function seedId(name: string): string {
+  const bytes = createHash("sha1").update(`${SEED_NAMESPACE}:${name}`).digest().subarray(0, 16);
+  bytes[6] = (bytes[6]! & 0x0f) | 0x50;
+  bytes[8] = (bytes[8]! & 0x3f) | 0x80;
+  const hex = bytes.toString("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
 const DEMO_PASSWORD = "settlewise-demo-2026";
 const today = new Date();
 function daysAgo(days: number): string {
@@ -62,10 +71,10 @@ const passwordHash = await hashPassword(DEMO_PASSWORD);
 const userRows = await db
   .insert(schema.users)
   .values([
-    { email: "maya@settlewise.demo", displayName: "Maya Rao", passwordHash },
-    { email: "arjun@settlewise.demo", displayName: "Arjun Sen", passwordHash },
-    { email: "leela@settlewise.demo", displayName: "Leela Nair", passwordHash },
-    { email: "nisha@settlewise.demo", displayName: "Nisha Shah", passwordHash },
+    { id: seedId("user-maya"), email: "maya@settlewise.demo", displayName: "Maya Rao", passwordHash },
+    { id: seedId("user-arjun"), email: "arjun@settlewise.demo", displayName: "Arjun Sen", passwordHash },
+    { id: seedId("user-leela"), email: "leela@settlewise.demo", displayName: "Leela Nair", passwordHash },
+    { id: seedId("user-nisha"), email: "nisha@settlewise.demo", displayName: "Nisha Shah", passwordHash },
   ])
   .returning({ id: schema.users.id, displayName: schema.users.displayName, email: schema.users.email });
 const users = new Map(userRows.map((user) => [user.email, user]));
@@ -91,24 +100,20 @@ const house = await createGroup(actors.maya, {
 });
 const houseId = house.group.id;
 
-async function attachHouseholdMember(user: { id: string; displayName: string; email: string }, role: "EDITOR" | "MEMBER", name: string) {
+async function attachHouseholdMember(user: { id: string; displayName: string; email: string }, role: "EDITOR" | "MEMBER", name: string, participantId: string) {
   await db.insert(schema.memberships).values({ groupId: houseId, userId: user.id, role });
-  const rows = await db
-    .insert(schema.participants)
-    .values({ groupId: houseId, userId: user.id, displayName: name, createdBy: mayaId })
-    .returning({ id: schema.participants.id });
-  const id = rows[0]?.id;
-  if (!id) throw new Error(`Participant ${name} was not created.`);
-  return id;
+  await db.insert(schema.participants).values({ id: participantId, groupId: houseId, userId: user.id, displayName: name, createdBy: mayaId });
+  return participantId;
 }
 
-const houseMaya = (
-  await db.select({ id: schema.participants.id }).from(schema.participants).where(sql`${schema.participants.groupId} = ${houseId} and ${schema.participants.userId} = ${maya.id}`)
-)[0]?.id;
-if (!houseMaya) throw new Error("Owner participant missing.");
-const houseArjun = await attachHouseholdMember(arjun, "EDITOR", "Arjun Sen");
-const houseLeela = await attachHouseholdMember(leela, "MEMBER", "Leela Nair");
-const ravi = await addParticipant(actors.maya, houseId, "Ravi Iyer");
+const houseMayaId = seedId("participant-house-maya");
+await db.update(schema.participants).set({ id: houseMayaId }).where(sql`${schema.participants.groupId} = ${houseId} and ${schema.participants.userId} = ${maya.id}`);
+const houseMaya = houseMayaId;
+const houseArjun = await attachHouseholdMember(arjun, "EDITOR", "Arjun Sen", seedId("participant-house-arjun"));
+const houseLeela = await attachHouseholdMember(leela, "MEMBER", "Leela Nair", seedId("participant-house-leela"));
+const raviId = seedId("participant-house-ravi");
+await db.insert(schema.participants).values({ id: raviId, groupId: houseId, displayName: "Ravi Iyer", createdBy: mayaId });
+const ravi = { id: raviId };
 
 const travel = await createGroup(actors.arjun, {
   name: "Goa Long Weekend",
@@ -117,26 +122,21 @@ const travel = await createGroup(actors.arjun, {
   invites: [],
 });
 const travelId = travel.group.id;
-const travelArjun = (
-  await db.select({ id: schema.participants.id }).from(schema.participants).where(sql`${schema.participants.groupId} = ${travelId} and ${schema.participants.userId} = ${arjun.id}`)
-)[0]?.id;
-if (!travelArjun) throw new Error("Travel owner participant missing.");
+const travelArjunId = seedId("participant-travel-arjun");
+await db.update(schema.participants).set({ id: travelArjunId }).where(sql`${schema.participants.groupId} = ${travelId} and ${schema.participants.userId} = ${arjun.id}`);
+const travelArjun = travelArjunId;
 await db.insert(schema.memberships).values([
   { groupId: travelId, userId: maya.id, role: "EDITOR" },
   { groupId: travelId, userId: nisha.id, role: "MEMBER" },
 ]);
-const travelMayaRows = await db
-  .insert(schema.participants)
-  .values({ groupId: travelId, userId: maya.id, displayName: "Maya Rao", createdBy: arjun.id })
-  .returning({ id: schema.participants.id });
-const travelNishaRows = await db
-  .insert(schema.participants)
-  .values({ groupId: travelId, userId: nisha.id, displayName: "Nisha Shah", createdBy: arjun.id })
-  .returning({ id: schema.participants.id });
-const travelMaya = travelMayaRows[0]?.id;
-const travelNisha = travelNishaRows[0]?.id;
-if (!travelMaya || !travelNisha) throw new Error("Travel participants missing.");
-const kabir = await addParticipant(actors.arjun, travelId, "Kabir Menon");
+const travelMaya = seedId("participant-travel-maya");
+const travelNisha = seedId("participant-travel-nisha");
+const kabirId = seedId("participant-travel-kabir");
+await db.insert(schema.participants).values([
+  { id: travelMaya, groupId: travelId, userId: maya.id, displayName: "Maya Rao", createdBy: arjun.id },
+  { id: travelNisha, groupId: travelId, userId: nisha.id, displayName: "Nisha Shah", createdBy: arjun.id },
+  { id: kabirId, groupId: travelId, displayName: "Kabir Menon", createdBy: arjun.id },
+]);
 
 await createInvitation(actors.maya, houseId, { email: "riya.friend@example.invalid", role: "MEMBER" });
 
@@ -293,7 +293,7 @@ const csvPath = fileURLToPath(new URL("../public/samples/travel-expenses.csv", i
 const csvText = await readFile(csvPath, "utf8");
 const file = new File([csvText], "travel-expenses.csv", { type: "text/csv" });
 const batch = await createImportBatch(actors.arjun, travelId, file);
-const nameMap = { Maya: travelMaya, Arjun: travelArjun, Nisha: travelNisha, Kabir: kabir.id } as Record<string, string>;
+const nameMap = { Maya: travelMaya, Arjun: travelArjun, Nisha: travelNisha, Kabir: kabirId } as Record<string, string>;
 const preview = await previewImportMapping(actors.arjun, travelId, batch.batchId, {
   dateColumn: "date",
   descriptionColumn: "description",
@@ -302,7 +302,7 @@ const preview = await previewImportMapping(actors.arjun, travelId, batch.batchId
   categoryColumn: "category",
   participantsColumn: "participants",
   notesColumn: "notes",
-  participantIds: [travelMaya, travelArjun, travelNisha, kabir.id],
+  participantIds: [travelMaya, travelArjun, travelNisha, kabirId],
   payerMap: nameMap,
   participantMap: nameMap,
   duplicatePolicy: "SKIP",
@@ -317,10 +317,10 @@ await createExpense(actors.maya, travelId, {
   occurredOn: daysAgo(2),
   payerParticipantId: travelMaya,
   amount: "420.00",
-  split: { method: "EQUAL", participantIds: [travelMaya, travelArjun, travelNisha, kabir.id] },
+  split: { method: "EQUAL", participantIds: [travelMaya, travelArjun, travelNisha, kabirId] },
 });
 
-const housePayment = await recordPayment(actors.arjun, houseId, {
+await recordPayment(actors.arjun, houseId, {
   senderParticipantId: houseArjun,
   recipientParticipantId: houseMaya,
   amount: "5000.00",
@@ -337,7 +337,7 @@ await recordPayment(actors.arjun, travelId, {
   idempotencyKey: "seed-travel-payment-arjun",
 });
 await recordPayment(actors.arjun, travelId, {
-  senderParticipantId: kabir.id,
+  senderParticipantId: kabirId,
   recipientParticipantId: travelNisha,
   amount: "2000.00",
   paidOn: daysAgo(4),
