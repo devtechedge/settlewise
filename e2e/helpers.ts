@@ -11,20 +11,6 @@ export async function clearRateLimits() {
   await client.end();
 }
 
-export async function selectMapping(page: Page, ariaLabel: string, optionText: string) {
-  const value = await page.locator(`select[aria-label="${ariaLabel}"] option`, { hasText: optionText }).first().getAttribute("value");
-  if (!value) throw new Error(`No option matching ${optionText} for ${ariaLabel}`);
-  await page.evaluate(
-    ({ ariaLabel, value }) => {
-      const select = document.querySelector(`select[aria-label="${ariaLabel}"]`) as HTMLSelectElement | null;
-      if (!select) throw new Error(`Missing select ${ariaLabel}`);
-      select.value = value;
-      select.dispatchEvent(new Event("change", { bubbles: true }));
-    },
-    { ariaLabel, value },
-  );
-}
-
 export async function signUp(page: Page, name: string, email: string, password: string) {
   await page.goto(process.env.E2E_BASE_URL ? `${process.env.E2E_BASE_URL}/signup` : "/signup");
   await page.fill("#displayName", name);

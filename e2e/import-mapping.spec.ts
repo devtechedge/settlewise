@@ -1,0 +1,31 @@
+import { test, expect } from "@playwright/test";
+import { clearRateLimits, signUp } from "./helpers";
+
+test("manual CSV name mapping is included in the preview request", async ({ page }) => {
+  test.setTimeout(90_000);
+  await clearRateLimits();
+  const suffix = Date.now();
+  await signUp(page, "Gamma", `gamma.${suffix}@example.test`, "mapping-test-password");
+  await page.getByRole("link", { name: "New group" }).click();
+  await page.fill("#group-name", `Mapping household ${suffix}`);
+  await page.getByRole("button", { name: "Create group" }).click();
+  await page.getByRole("link", { name: "Open the group ledger" }).click();
+  await page.getByRole("navigation", { name: "Group sections" }).getByRole("link", { name: "Participants", exact: true }).click();
+  await page.fill("#participant-name", "Delta");
+  await page.getByRole("button", { name: "Add" }).click();
+  await page.getByRole("navigation", { name: "Group sections" }).getByRole("link", { name: "Imports", exact: true }).click();
+  await page.setInputFiles("#csv-file", "e2e/fixtures/manual-mapping.csv");
+  await page.getByRole("button", { name: "Preview import" }).click();
+  await expect(page.getByText("1 error", { exact: true })).toBeVisible();
+  await page.getByLabel("Map payer Gamma").selectOption({ label: "Gamma" });
+  await page.getByLabel("Map beneficiary Gamma").selectOption({ label: "Gamma" });
+  await page.getByLabel("Map beneficiary Delta").selectOption({ label: "Delta" });
+  const requestPromise = page.waitForRequest((request) => request.url().includes("/imports/preview") && request.method() === "POST");
+  await page.getByRole("button", { name: "Preview again" }).click();
+  const request = await requestPromise;
+  const body = JSON.parse(request.postData() ?? "{}");
+  expect(body.mapping.payerMap.Gamma).toBeTruthy();
+  expect(body.mapping.participantMap.Gamma).toBeTruthy();
+  expect(body.mapping.participantMap.Delta).toBeTruthy();
+  await expect(page.getByText("1 valid", { exact: true })).toBeVisible();
+});

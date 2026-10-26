@@ -1,11 +1,11 @@
 import { test, expect } from "@playwright/test";
-import { clearRateLimits, selectMapping, signUp } from "./helpers";
+import { clearRateLimits, signUp } from "./helpers";
 
 test("a new owner can build, correct, settle, import, and export a ledger", async ({ page }) => {
   test.setTimeout(120_000);
   await clearRateLimits();
   const suffix = Date.now();
-  const ownerName = `Alpha ${suffix}`;
+  const ownerName = "Alpha";
   const email = `alpha.${suffix}@example.test`;
   await signUp(page, ownerName, email, "browser-test-password");
 
@@ -58,10 +58,6 @@ test("a new owner can build, correct, settle, import, and export a ledger", asyn
   await page.setInputFiles("#csv-file", "e2e/fixtures/e2e-import.csv");
   await expect(page.getByText("3 rows read")).toBeVisible();
   await page.getByRole("button", { name: "Preview import" }).click();
-  await expect(page.getByText("names still need mapping")).toBeVisible();
-  await selectMapping(page, "Map payer Alpha", ownerName);
-  await selectMapping(page, "Map beneficiary Alpha", ownerName);
-  await page.getByRole("button", { name: "Preview again" }).click();
   await expect(page.getByText("2 valid", { exact: true })).toBeVisible();
   await expect(page.getByText("1 duplicate", { exact: true })).toBeVisible();
   await expect(page.getByText("0 error", { exact: true })).toBeVisible();
