@@ -100,10 +100,6 @@ export async function getParticipantBalances(groupId: string, executor: Reader =
   return { balances: withNames, plan, participants: participantRows };
 }
 
-export async function getBalancesForRange(groupId: string, from: string, to: string) {
-  const ledger = await loadLedger(db, groupId, { from, to });
-  return { ledger };
-}
 
 export async function listRecentAuditEvents(groupId: string, limit = 6) {
   return db
@@ -134,5 +130,3 @@ export async function countFinancialRecords(groupId: string) {
     .where(eq(settlementPayments.groupId, groupId));
   return { expenses: expenseCount?.count ?? 0, payments: paymentCount?.count ?? 0 };
 }
-
-export type SerializedLedger = Awaited<ReturnType<typeof loadLedger>>;

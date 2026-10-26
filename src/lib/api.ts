@@ -67,9 +67,6 @@ export async function readJson<T extends z.ZodType>(request: Request, schema: T)
   return parsed.data;
 }
 
-export function searchParams(url: string) {
-  return new URL(url).searchParams;
-}
 
 export function numberParam(value: string | null, fallback: number, min: number, max: number) {
   const parsed = Number(value ?? fallback);

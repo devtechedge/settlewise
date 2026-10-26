@@ -4,6 +4,7 @@ import { requireGroupRole } from "@/auth/rbac";
 import { listExpenses } from "@/repositories/expenses";
 import { createExpense } from "@/services/expenses";
 import { expenseCreateSchema, isoDateSchema } from "@/validation/schemas";
+import { AppError } from "@/lib/errors";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,9 @@ type Context = { params: Promise<{ groupId: string }> };
 function optionalDate(value: string | null, field: string) {
   if (!value) return undefined;
   const parsed = isoDateSchema.safeParse(value);
-  if (!parsed.success) throw new Error(`${field} must be a valid date in YYYY-MM-DD format.`);
+  if (!parsed.success) {
+    throw new AppError("VALIDATION_ERROR", `${field} must be a valid date in YYYY-MM-DD format.`, { path: field });
+  }
   return parsed.data;
 }
 

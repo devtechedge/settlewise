@@ -1,5 +1,4 @@
 import { and, eq, inArray } from "drizzle-orm";
-import { db } from "@/db/client";
 import {
   groups,
   memberships,
@@ -243,11 +242,3 @@ export async function reversePayment(actor: Actor, paymentId: string, input: Rev
   });
 }
 
-export async function getPaymentGroupId(paymentId: string) {
-  const rows = await db
-    .select({ groupId: settlementPayments.groupId })
-    .from(settlementPayments)
-    .where(eq(settlementPayments.id, paymentId))
-    .limit(1);
-  return rows[0]?.groupId ?? null;
-}

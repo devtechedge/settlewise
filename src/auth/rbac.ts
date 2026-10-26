@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db/client";
-import { groups, memberships, participants } from "@/db/schema";
+import { groups, memberships } from "@/db/schema";
 import { AppError } from "@/lib/errors";
 
 export type GroupRole = "OWNER" | "EDITOR" | "MEMBER";
@@ -48,14 +48,6 @@ export async function requireWritableGroup(groupId: string, userId: string, requ
   return membership;
 }
 
-export async function findLinkedParticipant(groupId: string, userId: string) {
-  const rows = await db
-    .select()
-    .from(participants)
-    .where(and(eq(participants.groupId, groupId), eq(participants.userId, userId)))
-    .limit(1);
-  return rows[0] ?? null;
-}
 
 export function canEditTransactions(role: GroupRole): boolean {
   return hasRole(role, "EDITOR");

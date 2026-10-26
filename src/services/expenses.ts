@@ -5,7 +5,7 @@ import { allocateSplit, type SplitInput } from "@/domain/expenses/allocation";
 import { parseMoneyToMinor, parsePercentToBasisPoints } from "@/domain/money/money";
 import { getCurrency } from "@/domain/money/currency";
 import { AppError } from "@/lib/errors";
-import { requireWritableGroup } from "@/auth/rbac";
+import { requireGroupRole, requireWritableGroup } from "@/auth/rbac";
 import { expenseFingerprint } from "@/importers/fingerprint";
 import type { z } from "zod";
 import type { expenseCreateSchema, expenseUpdateSchema, voidExpenseSchema } from "@/validation/schemas";
@@ -382,11 +382,11 @@ export function previewAllocation(currencyCode: string, amount: string, split: C
   return allocateSplit(amountMinor, toSplitInput(currency.code, split));
 }
 
+
 export async function resolveExpenseAccess(expenseId: string, userId: string) {
   const rows = await db.select({ groupId: expenses.groupId }).from(expenses).where(eq(expenses.id, expenseId)).limit(1);
   const expense = rows[0];
   if (!expense) throw new AppError("NOT_FOUND", "Expense not found.");
-  const { requireGroupRole } = await import("@/auth/rbac");
   const membership = await requireGroupRole(expense.groupId, userId, "MEMBER");
   return { groupId: expense.groupId, membership };
 }

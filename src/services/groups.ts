@@ -4,7 +4,7 @@ import { budgets, groups, invitations, memberships, participants, users } from "
 import { getCurrency } from "@/domain/money/currency";
 import { parsePositiveMoneyToMinor } from "@/domain/money/money";
 import { AppError } from "@/lib/errors";
-import { getMembership, requireGroupRole, requireWritableGroup } from "@/auth/rbac";
+import { requireGroupRole, requireWritableGroup } from "@/auth/rbac";
 import { createOpaqueToken, hashToken } from "@/auth/tokens";
 import type { z } from "zod";
 import type { groupCreateSchema, invitationCreateSchema } from "@/validation/schemas";
@@ -416,14 +416,7 @@ export async function setBudget(actor: Actor, groupId: string, input: { scope: "
   });
 }
 
-export async function checkGroupAccess(groupId: string, userId: string) {
-  return getMembership(groupId, userId);
-}
 
-export async function invitationLink(groupId: string, token: string) {
-  const base = process.env.APP_URL ?? "http://localhost:3000";
-  return `${base.replace(/\/$/, "")}/invite/${token}?group=${groupId}`;
-}
 
 export async function revokeInvitation(actor: Actor, groupId: string, invitationId: string) {
   await requireWritableGroup(groupId, actor.id, "OWNER");

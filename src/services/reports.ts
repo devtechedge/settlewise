@@ -10,7 +10,6 @@ import {
   settlementPayments,
 } from "@/db/schema";
 import { CATEGORY_LABELS, type ExpenseCategory } from "@/domain/money/currency";
-import { formatMinor } from "@/domain/money/money";
 import { requireGroupRole } from "@/auth/rbac";
 import { getParticipantBalances } from "@/repositories/ledger";
 
@@ -218,6 +217,3 @@ export async function getReports(groupId: string, userId: string, range: ReportR
   };
 }
 
-export function formatReportMoney(minor: bigint, currency: string): string {
-  return formatMinor(minor, currency);
-}

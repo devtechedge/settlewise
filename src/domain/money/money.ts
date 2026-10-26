@@ -1,11 +1,7 @@
 import { AppError } from "@/lib/errors";
-import { getCurrency, type Currency, type CurrencyCode } from "./currency";
+import { getCurrency, type Currency } from "./currency";
 
 const MAX_MINOR = 1_000_000_000_000n;
-
-export function maxMinorUnits(): bigint {
-  return MAX_MINOR;
-}
 
 export function parseMinorDigits(input: string, precision: number): bigint {
   const value = input.trim();
@@ -106,6 +102,3 @@ export function formatMinorSigned(minor: bigint, currencyCode: string): string {
   return formatMinor(0n, currencyCode);
 }
 
-export function currencyPrecision(code: CurrencyCode): number {
-  return getCurrency(code).precision;
-}
