@@ -1,19 +1,20 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db/client";
-import { groups, invitations, memberships, participants, sessions, users } from "@/db/schema";
+import { auditEvents, groups, invitations, memberships, participants, sessions, users } from "@/db/schema";
 import { createInvitation, addParticipant, setGroupArchived, setParticipantStatus, transferOwnership } from "@/services/groups";
 import { createExpense } from "@/services/expenses";
 import { recordPayment, reversePayment } from "@/services/payments";
 import { acceptInvitation } from "@/auth/invitations";
 import { deleteAccount } from "@/services/account";
 import { hashToken } from "@/auth/tokens";
-import { daysAgo, expectAppError, makeGroup, makeMember, makeUser, resetDatabase } from "./helpers";
+import { daysAgo, expectAppError, makeGroup, makeMember, makeUnlinkedParticipant, makeUser, resetDatabase } from "./helpers";
 
 beforeAll(resetDatabase);
 
 describe("invitations and roles", () => {
   it("accepts a valid invitation and rejects the wrong account or an expired token", async () => {
+
     const owner = await makeUser("Invite Owner", "invite-owner");
     const invited = await makeUser("Invited Person", "invited");
     const stranger = await makeUser("Stranger", "stranger");
@@ -23,6 +24,102 @@ describe("invitations and roles", () => {
     await expectAppError(() => acceptInvitation(invitation.token, stranger), "FORBIDDEN");
     await db.update(invitations).set({ expiresAt: new Date(Date.now() - 1000) }).where(eq(invitations.tokenHash, hashToken(invitation.token)));
     await expectAppError(() => acceptInvitation(invitation.token, invited), "CONFLICT");
+  });
+
+  it("links a same-named participant and audits an accepted invitation", async () => {
+    const owner = await makeUser("Accept Owner", "accept-owner");
+    const invited = await makeUser("Accept Person", "accept-person");
+    const group = await makeGroup(owner, "Acceptance group");
+    const placeholder = await makeUnlinkedParticipant(group.id, owner, "accept person");
+    const invitation = await createInvitation(owner, group.id, { email: invited.email, role: "MEMBER" });
+
+    const result = await acceptInvitation(invitation.token, invited);
+    expect(result.groupId).toBe(group.id);
+    const [invitationRow] = await db
+      .select()
+      .from(invitations)
+      .where(eq(invitations.tokenHash, hashToken(invitation.token)));
+    if (!invitationRow) throw new Error("Invitation row disappeared.");
+
+    const [membership] = await db
+      .select()
+      .from(memberships)
+      .where(and(eq(memberships.groupId, group.id), eq(memberships.userId, invited.id)));
+    expect(membership?.role).toBe("MEMBER");
+    expect(membership?.status).toBe("ACTIVE");
+
+    const linked = await db.select().from(participants).where(eq(participants.id, placeholder));
+    expect(linked[0]?.userId).toBe(invited.id);
+    expect(
+      await db
+        .select({ id: participants.id })
+        .from(participants)
+        .where(and(eq(participants.groupId, group.id), eq(participants.userId, invited.id))),
+    ).toHaveLength(1);
+
+    const [accepted] = await db.select().from(invitations).where(eq(invitations.id, invitationRow.id));
+    expect(accepted?.acceptedAt).not.toBeNull();
+    expect(accepted?.acceptedByUserId).toBe(invited.id);
+
+    const audit = await db
+      .select()
+      .from(auditEvents)
+      .where(and(eq(auditEvents.groupId, group.id), eq(auditEvents.action, "INVITATION_ACCEPTED")));
+    expect(audit).toHaveLength(1);
+    expect(audit[0]?.targetId).toBe(invitationRow.id);
+    expect(audit[0]?.metadata).toEqual({ email: invited.email, role: "MEMBER" });
+
+    await expect(acceptInvitation(invitation.token, invited)).resolves.toEqual({ groupId: group.id });
+  });
+
+  it("creates a participant for an accepted invitation when no name matches", async () => {
+    const owner = await makeUser("Fresh Owner", "fresh-owner");
+    const invited = await makeUser("Fresh Person", "fresh-person");
+    const group = await makeGroup(owner, "Fresh member group");
+    await makeUnlinkedParticipant(group.id, owner, "Someone else");
+    const invitation = await createInvitation(owner, group.id, { email: invited.email, role: "EDITOR" });
+
+    await acceptInvitation(invitation.token, invited);
+    const rows = await db
+      .select()
+      .from(participants)
+      .where(and(eq(participants.groupId, group.id), eq(participants.userId, invited.id)));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.displayName).toBe("Fresh Person");
+    expect(rows[0]?.status).toBe("ACTIVE");
+  });
+
+  it("transfers ownership to a member who has no participant yet", async () => {
+    const owner = await makeUser("Handover Owner", "handover-owner");
+    const heir = await makeUser("Handover Heir", "handover-heir");
+    const group = await makeGroup(owner, "Handover group");
+    await makeMember(group.id, owner, "EDITOR", "Handover Owner");
+    await db.insert(memberships).values({ groupId: group.id, userId: heir.id, role: "MEMBER" });
+
+    await expectAppError(() => transferOwnership(owner, group.id, owner.id), "VALIDATION_ERROR");
+    const stranger = await makeUser("Handover Stranger", "handover-stranger");
+    await expectAppError(() => transferOwnership(owner, group.id, stranger.id), "NOT_FOUND");
+
+    await transferOwnership(owner, group.id, heir.id);
+
+    const [updated] = await db.select().from(groups).where(eq(groups.id, group.id));
+    expect(updated?.ownerId).toBe(heir.id);
+    const heirParticipant = await db
+      .select()
+      .from(participants)
+      .where(and(eq(participants.groupId, group.id), eq(participants.userId, heir.id)));
+    expect(heirParticipant).toHaveLength(1);
+    expect(heirParticipant[0]?.displayName).toBe("Handover Heir");
+    const [previousOwner] = await db
+      .select()
+      .from(memberships)
+      .where(and(eq(memberships.groupId, group.id), eq(memberships.userId, owner.id)));
+    expect(previousOwner?.role).toBe("EDITOR");
+    const audit = await db
+      .select()
+      .from(auditEvents)
+      .where(and(eq(auditEvents.groupId, group.id), eq(auditEvents.action, "OWNERSHIP_TRANSFERRED")));
+    expect(audit).toHaveLength(1);
   });
 
   it("lets members record only their own payments and owners reverse any payment", async () => {
