@@ -18,7 +18,8 @@
     "db:setup-test": "tsx scripts/setup-test-db.ts",
     "db:seed": "tsx scripts/seed.ts",
     "db:seed:test": "tsx scripts/seed.ts --test",
-    "smoke": "tsx scripts/smoke.ts"
+    "smoke": "tsx scripts/smoke.ts",
+    "db:seed:dev": "tsx scripts/seed.ts --dev"
   },
   "dependencies": {
     "drizzle-orm": "0.45.4",
@@ -46,5 +47,6 @@
   },
   "engines": {
     "node": ">=20.9"
-  }
+  },
+  "type": "module"
 }
