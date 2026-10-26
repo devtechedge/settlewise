@@ -202,8 +202,8 @@ npm run db:seed:dev
 npm run dev
 ```
 
-Open `http://localhost:3010` if port 3000 is occupied, or change the development port. The seeded demo
-login is shown by the seed command.
+The dev server prints the port it used; pass `-p <port>` if 3000 is already taken. The seeded demo login
+is printed by the seed command.
 
 ## Commands
 
@@ -223,6 +223,10 @@ login is shown by the seed command.
 | `npm run db:seed:dev` | Seed the local development demo database |
 | `npm run db:seed:test` | Seed the browser-test database |
 | `npm run db:seed` | Seed the explicitly authorized production demo database |
+| `npm run smoke` | Drive a real browser through production and delete the group it created |
+| `npm run perf:test` | Seed a 200-expense ledger in the test database and print read timings |
+| `npm run qa:bundle` | Measure on-the-wire bytes per page against `QA_BASE_URL` |
+| `npm run qa:screens` | Capture documentation screenshots, console errors, and overflow at 390/768/1440 |
 
 ## Environment
 
@@ -240,11 +244,13 @@ Never commit `.env` or database dumps.
 
 Current local gates:
 
-- 28 Vitest domain tests for parsing, allocation, balances, and settlement.
-- 14 PostgreSQL integration tests for revisions, concurrency rejection, payments, reversals, imports,
-  exports, invitations, roles, archiving, and account deletion.
-- 16 Playwright scenarios across demo data, owner workflow, authorization, axe scans, and mobile
-  overflow. Two accessibility checks intentionally run once in the desktop project.
+- 38 Vitest unit tests for money parsing and precision, allocation and residual handling, balances,
+  settlement determinism, CSV parser bounds, and route middleware guards.
+- 30 PostgreSQL integration tests for revisions and stale conflicts, idempotent payments, reversals,
+  cross-group rejection, composite currency keys, imports and duplicate policies, exports, invitation
+  acceptance, ownership handover, archiving, account and group deletion, and API error envelopes.
+- 18 Playwright scenarios across the demo ledger, the full owner journey, manual CSV name mapping,
+  authorization, axe scans, and mobile overflow. Two accessibility checks run once, on desktop only.
 
 Run them in this order:
 
@@ -258,7 +264,9 @@ npm run build
 npm run e2e
 ```
 
-CI uses a PostgreSQL 17 service and runs the same gates on every push and pull request.
+CI uses a PostgreSQL 17 service and runs the same gates on every push and pull request. The browser
+suite always serves the production build (`next start`), locally and in CI, so a green run means the same
+compiled output that ships was exercised.
 
 ## Security and privacy
 
